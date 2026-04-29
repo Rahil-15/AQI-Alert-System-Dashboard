@@ -1,13 +1,13 @@
 # MLflow Configuration
 mlflow:
-  tracking_uri: "sqlite:///E:/Semester 8/MLOps/Project_Task_1/Task_2/mlruns/mlflow.db"
+  tracking_uri: "sqlite:///mlruns/mlflow.db"
   experiment_name: "aqi_prediction"
   run_name_prefix: "aqi_prediction_run"
 
 # Data Configuration
 data:
-  weather_path: "E:/Semester 8/MLOps/Project_Task_1/data/weather"       # Path to weather data
-  pollution_path: "E:/Semester 8/MLOps/Project_Task_1/data/pollution"   # Path to pollution data
+  weather_path: "../data/weather"       # Path to weather data
+  pollution_path: "../data/pollution"   # Path to pollution data
   train_test_split: 0.8                      # Train/test split ratio
 
 # Model Parameters

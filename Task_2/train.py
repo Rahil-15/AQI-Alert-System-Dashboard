@@ -117,6 +117,12 @@ def train_models(config):
                 # Log LSTM metrics
                 mlflow.log_metrics({f"lstm_{k}": v for k, v in lstm_metrics.items()})
                 logger.info(f"LSTM metrics logged: {lstm_metrics}")
+                
+                # Save model for Deployment
+                import os
+                os.makedirs('../Deployment', exist_ok=True)
+                lstm.model.save('../Deployment/lstm_model.h5')
+                logger.info("LSTM model saved to ../Deployment/lstm_model.h5")
 
             logger.info("Training completed successfully.")
 

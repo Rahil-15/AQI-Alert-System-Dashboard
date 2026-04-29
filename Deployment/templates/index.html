@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AQI Alert System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --good: #10b981;
+            --moderate: #f59e0b;
+            --hazardous: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Search Bar Styles */
+        .search-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+
+        .search-container input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1rem;
+            width: 300px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .search-container input:focus {
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-location {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--good);
+            border-color: var(--good);
+        }
+
+        .btn-location:hover {
+            background: var(--good);
+            color: white;
+        }
+
+        .alert-box {
+            background: rgba(0,0,0,0.2);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .alert-box.good { border-color: var(--good); box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+        .alert-box.moderate { border-color: var(--moderate); box-shadow: 0 0 20px rgba(245, 158, 11, 0.2); }
+        .alert-box.hazardous { border-color: var(--hazardous); box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); }
+
+        .location-badge {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-color);
+            border: 1px solid var(--glass-border);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .aqi-value {
+            font-size: 4rem;
+            font-weight: 700;
+            margin: 1rem 0;
+            line-height: 1;
+        }
+
+        .good .aqi-value { color: var(--good); }
+        .moderate .aqi-value { color: var(--moderate); }
+        .hazardous .aqi-value { color: var(--hazardous); }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .good .status-badge { background: rgba(16, 185, 129, 0.2); color: var(--good); }
+        .moderate .status-badge { background: rgba(245, 158, 11, 0.2); color: var(--moderate); }
+        .hazardous .status-badge { background: rgba(239, 68, 68, 0.2); color: var(--hazardous); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: left;
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .btn-refresh {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+
+        .btn-refresh:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .btn-refresh:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .last-updated {
+            margin-top: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pulsing {
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="app">
+        <header>
+            <h1>Air Quality Alert System</h1>
+            <p>Real-Time Prediction & Monitoring Dashboard</p>
+        </header>
+
+        <div class="search-container">
+            <input type="text" id="cityInput" placeholder="Search a city... (e.g. London)" onkeypress="handleKeyPress(event)">
+            <button class="btn" onclick="searchCity()">Search</button>
+            <button class="btn btn-location" onclick="useMyLocation()" title="Use My Location">
+                📍 My Location
+            </button>
+        </div>
+
+        <div class="alert-box" id="alertBox">
+            <div class="location-badge">
+                📍 <span id="cityNameDisplay">Locating...</span>
+            </div>
+            <h2 style="color: var(--text-muted); font-size: 1.2rem; font-weight: 400; margin-top: 10px;">Predicted AQI</h2>
+            <div class="aqi-value" id="aqiValue">--</div>
+            <div class="status-badge" id="statusBadge">Loading...</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Temperature</div>
+                <div class="metric-value" id="tempValue">-- °C</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Humidity</div>
+                <div class="metric-value" id="humidityValue">-- %</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Wind Speed</div>
+                <div class="metric-value" id="windValue">-- m/s</div>
+            </div>
+        </div>
+
+        <button class="btn-refresh" id="refreshBtn" onclick="fetchData()">Refresh Data</button>
+        <div class="last-updated" id="lastUpdated">Last updated: Never</div>
+    </div>
+
+    <script>
+        const alertBox = document.getElementById('alertBox');
+        const aqiValue = document.getElementById('aqiValue');
+        const statusBadge = document.getElementById('statusBadge');
+        const tempValue = document.getElementById('tempValue');
+        const humidityValue = document.getElementById('humidityValue');
+        const windValue = document.getElementById('windValue');
+        const lastUpdated = document.getElementById('lastUpdated');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const cityInput = document.getElementById('cityInput');
+        const cityNameDisplay = document.getElementById('cityNameDisplay');
+
+        let currentCity = ""; 
+        let currentLat = null;
+        let currentLon = null;
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                searchCity();
+            }
+        }
+
+        function searchCity() {
+            const query = cityInput.value.trim();
+            if(query) {
+                currentCity = query;
+                currentLat = null; // Clear GPS coords so city overrides
+                currentLon = null;
+                fetchData();
+            }
+        }
+
+        function useMyLocation() {
+            if (navigator.geolocation) {
+                cityNameDisplay.textContent = "Detecting location...";
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        currentLat = position.coords.latitude;
+                        currentLon = position.coords.longitude;
+                        currentCity = ""; // Clear explicit city search
+                        cityInput.value = ""; // Clear input field
+                        fetchData();
+                    },
+                    (error) => {
+                        console.error("Geolocation Error:", error);
+                        alert("Could not access your location. Please check your browser permissions.");
+                        fetchData(); // fallback to default
+                    }
+                );
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
+        }
+
+        async function fetchData() {
+            try {
+                // UI Loading State
+                refreshBtn.classList.add('loading');
+                refreshBtn.textContent = 'Predicting...';
+                alertBox.classList.add('pulsing');
+
+                let url = '/predict';
+                if (currentCity) {
+                    url += `?city=${encodeURIComponent(currentCity)}`;
+                } else if (currentLat !== null && currentLon !== null) {
+                    url += `?lat=${currentLat}&lon=${currentLon}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if(response.ok) {
+                    updateUI(data);
+                } else {
+                    console.error("Error:", data.error);
+                    statusBadge.textContent = "Error";
+                    cityNameDisplay.textContent = "Not Found";
+                    alertBox.className = 'alert-box'; // reset
+                    aqiValue.textContent = "--";
+                }
+            } catch (error) {
+                console.error("Fetch failed:", error);
+                statusBadge.textContent = "Connection Error";
+            } finally {
+                refreshBtn.classList.remove('loading');
+                refreshBtn.textContent = 'Refresh Data';
+                alertBox.classList.remove('pulsing');
+            }
+        }
+
+        function updateUI(data) {
+            const aqi = parseFloat(data.predicted_aqi).toFixed(1);
+            const status = data.status;
+            
+            // Set City Name
+            cityNameDisplay.textContent = data.city || "Unknown City";
+            
+            aqiValue.textContent = aqi;
+            statusBadge.textContent = status;
+
+            // Update live metrics
+            if(data.live_data) {
+                tempValue.textContent = `${data.live_data.temperature} °C`;
+                humidityValue.textContent = `${data.live_data.humidity} %`;
+                windValue.textContent = `${data.live_data.wind_speed} m/s`;
+            }
+
+            // Update styling based on status
+            alertBox.className = 'alert-box'; // reset
+            if(status === 'Good') {
+                alertBox.classList.add('good');
+            } else if(status === 'Moderate') {
+                alertBox.classList.add('moderate');
+            } else if(status === 'Hazardous') {
+                alertBox.classList.add('hazardous');
+            }
+
+            // Update timestamp
+            const now = new Date();
+            lastUpdated.textContent = `Last updated: ${now.toLocaleTimeString()}`;
+        }
+
+        // On initial load, try to get location automatically
+        window.onload = () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        currentLat = position.coords.latitude;
+                        currentLon = position.coords.longitude;
+                        fetchData();
+                    },
+                    (error) => {
+                        console.log("Geolocation denied or failed, falling back to default.");
+                        fetchData();
+                    }
+                );
+            } else {
+                fetchData();
+            }
+        };
+    </script>
+</body>
+</html>
