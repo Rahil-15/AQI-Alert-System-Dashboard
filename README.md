@@ -1,5 +1,4 @@
-# Real-Time Air Quality Prediction & Alert System
-
+# AQI Alert System & Dashboard
 An end-to-end **Machine Learning + Web Application** that predicts future Air Quality Index (AQI) and provides **real-time health alerts** based on predicted pollution levels.
 
 > Unlike traditional AQI dashboards, this system is **proactive** — it predicts air quality *before it becomes hazardous*.
