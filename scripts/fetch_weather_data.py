@@ -1,7 +1,7 @@
 import requests
 import json
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 import os
 import logging
@@ -83,7 +83,7 @@ def process_weather_data(raw_data):
     
     return {
         'city': CITY_CONFIG['name'],
-        'timestamp': datetime.utcfromtimestamp(raw_data['dt']).strftime('%Y-%m-%d %H:%M:%S'),
+        'timestamp': datetime.fromtimestamp(raw_data['dt'], timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
         'temperature': raw_data['main']['temp'],
         'humidity': raw_data['main']['humidity'],
         'pressure': raw_data['main']['pressure'],
@@ -99,7 +99,7 @@ def process_pollution_data(raw_data):
     pollution = raw_data['list'][0]
     return {
         'city': CITY_CONFIG['name'],
-        'timestamp': datetime.utcfromtimestamp(pollution['dt']).strftime('%Y-%m-%d %H:%M:%S'),
+        'timestamp': datetime.fromtimestamp(pollution['dt'], timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
         'aqi': pollution['main']['aqi'],
         'co': pollution['components']['co'],
         'no2': pollution['components']['no2'],

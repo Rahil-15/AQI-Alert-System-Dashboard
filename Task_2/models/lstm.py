@@ -69,8 +69,11 @@ class LSTMModel:
             epochs: int = 20,
             batch_size: int = 2) -> Dict:
         try:
-            with mlflow.start_run(nested=True) as run:
-                self.logger.info(f"Started MLflow run for LSTM: {run.info.run_id}")
+            from contextlib import nullcontext
+            run_context = nullcontext(mlflow.active_run()) if mlflow.active_run() is not None else mlflow.start_run(nested=True)
+            with run_context as run:
+                run_id = run.info.run_id if (run and hasattr(run, 'info')) else "active"
+                self.logger.info(f"Using MLflow run for LSTM: {run_id}")
             
                 if self.n_features is None:
                     self.n_features = X_train.shape[2]

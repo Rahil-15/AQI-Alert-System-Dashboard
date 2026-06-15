@@ -5,7 +5,7 @@ from tensorflow.keras.metrics import MeanAbsoluteError
 import requests
 import numpy as np
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from prometheus_client import Counter, generate_latest
 from flask import Response
 
@@ -124,9 +124,16 @@ def process_live_data(weather_data, pollution_data):
             "aqi": 0  # Placeholder for AQI
         }
 
-        # Extract AQI from pollution data
+        # Extract AQI and components from pollution data
         if pollution_data and "list" in pollution_data and pollution_data["list"]:
-            processed_data["aqi"] = pollution_data["list"][0]["main"]["aqi"]
+            pollution_item = pollution_data["list"][0]
+            processed_data["aqi"] = pollution_item["main"]["aqi"]
+            components = pollution_item.get("components", {})
+            processed_data["co"] = components.get("co", 0)
+            processed_data["no2"] = components.get("no2", 0)
+            processed_data["o3"] = components.get("o3", 0)
+            processed_data["pm2_5"] = components.get("pm2_5", 0)
+            processed_data["pm10"] = components.get("pm10", 0)
 
         return processed_data
 
@@ -187,7 +194,7 @@ def aqi_status():
         current_aqi = live_data.get("aqi", 0)
         return jsonify({
             "city": resolved_city,
-            "timestamp": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+            "timestamp": datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
             "current_aqi": current_aqi,
             "status": get_aqi_alert(current_aqi),
             "live_data": live_data
@@ -248,7 +255,7 @@ def predict():
         # Return the prediction
         return jsonify({
             "city": resolved_city,
-            "timestamp": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+            "timestamp": datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
             "predicted_aqi": prediction,
             "status": alert_status,
             "live_data": live_data

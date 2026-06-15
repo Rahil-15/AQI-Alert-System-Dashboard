@@ -250,12 +250,14 @@ class EnhancedDataPreprocessor:
     
 if __name__ == "__main__":
     try:
+        import os
+        script_dir = os.path.dirname(os.path.abspath(__file__))
         preprocessor = EnhancedDataPreprocessor()
         
         # Load data
         weather_df, pollution_df = preprocessor.load_data(
-            weather_folder="E:\\Semester 8\\MLOps\\Project_Task_1\\data\\weather",
-            pollution_folder="E:\\Semester 8\\MLOps\\Project_Task_1\\data\\pollution"
+            weather_folder=os.path.join(script_dir, "../../data/weather"),
+            pollution_folder=os.path.join(script_dir, "../../data/pollution")
         )
         
         # Preprocess data

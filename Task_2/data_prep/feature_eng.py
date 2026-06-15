@@ -1,4 +1,5 @@
 from typing import Dict, List, Tuple, Optional
+from contextlib import nullcontext
 import pandas as pd
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -40,7 +41,8 @@ class TimeSeriesFeatureEngineer(BaseEstimator, TransformerMixin):
             }
             
             # Log feature statistics with MLflow
-            with mlflow.start_run(nested=True):
+            run_context = nullcontext() if mlflow.active_run() is not None else mlflow.start_run(nested=True)
+            with run_context:
                 for col, stats in self.feature_stats.items():
                     for stat_name, value in stats.items():
                         mlflow.log_metric(f"{col}_{stat_name}", value)
@@ -64,7 +66,8 @@ class TimeSeriesFeatureEngineer(BaseEstimator, TransformerMixin):
             X_transformed = self.add_rate_of_change_features(X_transformed)
             
             # Log feature creation with MLflow
-            with mlflow.start_run(nested=True):
+            run_context = nullcontext() if mlflow.active_run() is not None else mlflow.start_run(nested=True)
+            with run_context:
                 mlflow.log_param("n_features_created", 
                                len(X_transformed.columns) - len(X.columns))
             
@@ -200,10 +203,14 @@ class TimeSeriesFeatureEngineer(BaseEstimator, TransformerMixin):
             
             # Separate features and target
             target = df_clean[self.target_col]
-            features = df_clean.drop([self.target_col, 'timestamp'], axis=1)
+            cols_to_drop = [self.target_col]
+            if 'timestamp' in df_clean.columns:
+                cols_to_drop.append('timestamp')
+            features = df_clean.drop(cols_to_drop, axis=1)
             
             # Log feature preparation metrics
-            with mlflow.start_run(nested=True):
+            run_context = nullcontext() if mlflow.active_run() is not None else mlflow.start_run(nested=True)
+            with run_context:
                 mlflow.log_params({
                     "final_features_count": features.shape[1],
                     "samples_after_cleaning": features.shape[0]
@@ -217,14 +224,16 @@ class TimeSeriesFeatureEngineer(BaseEstimator, TransformerMixin):
 
 if __name__ == "__main__":
     try:
+        import os
+        script_dir = os.path.dirname(os.path.abspath(__file__))
         # Initialize preprocessor
         from preprocess import EnhancedDataPreprocessor
         preprocessor = EnhancedDataPreprocessor()
         
         # Load and preprocess data
         weather_df, pollution_df = preprocessor.load_data(
-            weather_folder="E:\\Semester 8\\MLOps\\Project_Task_1\\data\\weather",
-            pollution_folder="E:\\Semester 8\\MLOps\\Project_Task_1\\data\\pollution"
+            weather_folder=os.path.join(script_dir, "../../data/weather"),
+            pollution_folder=os.path.join(script_dir, "../../data/pollution")
         )
         processed_df = preprocessor.preprocess(weather_df, pollution_df)
         

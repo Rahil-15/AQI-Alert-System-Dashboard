@@ -5,6 +5,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import logging
 from typing import Dict, Tuple, Optional
 import mlflow
+from contextlib import nullcontext
 
 class ArimaModel:
     def __init__(self, 
@@ -52,14 +53,29 @@ class ArimaModel:
             self.logger.error(f"Error calculating metrics: {e}")
             raise
 
+    def prepare_data(self, data: pd.DataFrame) -> Tuple[pd.Series, Optional[pd.DataFrame]]:
+        """Prepare target and exogenous variables from DataFrame."""
+        target_col = 'aqi'
+        target = data[target_col].replace([float('inf'), float('-inf')], np.nan).dropna()
+        
+        if self.exog_columns:
+            exog = data[self.exog_columns].replace([float('inf'), float('-inf')], np.nan).dropna()
+            common_indices = target.index.intersection(exog.index)
+            target = target.loc[common_indices]
+            exog = exog.loc[common_indices]
+            return target, exog
+        return target, None
+
     def fit(self, endog: pd.Series, exog: Optional[pd.DataFrame] = None) -> Dict:
         """
         Fit the ARIMA model and log metrics.
         """
         try:
-            # Start an MLflow run
-            with mlflow.start_run(nested=True) as run:
-                self.logger.info(f"Started MLflow run: {run.info.run_id}")
+            # Start an MLflow run if not already active
+            run_context = nullcontext(mlflow.active_run()) if mlflow.active_run() is not None else mlflow.start_run(nested=True)
+            with run_context as run:
+                run_id = run.info.run_id if (run and hasattr(run, 'info')) else "active"
+                self.logger.info(f"Using MLflow run: {run_id}")
                 
                 # Convert to numpy array if needed
                 if isinstance(endog, pd.Series):
@@ -111,8 +127,11 @@ class ArimaModel:
         Generate forecasts and log test metrics.
         """
         try:
-            with mlflow.start_run(nested=True) as run:
-                self.logger.info(f"Started MLflow prediction run: {run.info.run_id}")
+            # Start an MLflow run if not already active
+            run_context = nullcontext(mlflow.active_run()) if mlflow.active_run() is not None else mlflow.start_run(nested=True)
+            with run_context as run:
+                run_id = run.info.run_id if (run and hasattr(run, 'info')) else "active"
+                self.logger.info(f"Using MLflow prediction run: {run_id}")
                 
                 target, exog = self.prepare_data(test_data)
                 

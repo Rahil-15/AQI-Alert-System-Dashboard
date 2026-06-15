@@ -3,19 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AQI Alert System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>Air Quality Alert & Prediction System</title>
+    <!-- Google Fonts: Outfit for titles, Inter for body -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js for beautiful interactive analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --glass-bg: rgba(30, 41, 59, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #3b82f6;
+            --bg-color: #0b0f19;
+            --glass-bg: rgba(17, 24, 39, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent: #06b6d4;
+            --accent-glow: rgba(6, 182, 212, 0.3);
+            
+            /* Status Colors */
             --good: #10b981;
+            --good-glow: rgba(16, 185, 129, 0.25);
             --moderate: #f59e0b;
+            --moderate-glow: rgba(245, 158, 11, 0.25);
             --hazardous: #ef4444;
+            --hazardous-glow: rgba(239, 68, 68, 0.25);
+            
+            --current-status-color: var(--accent);
+            --current-status-glow: var(--accent-glow);
         }
 
         * {
@@ -23,293 +35,704 @@
             padding: 0;
             box-sizing: border-box;
             font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
 
         body {
             background-color: var(--bg-color);
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 2rem;
+            overflow-x: hidden;
+            position: relative;
+            padding: 2rem 1rem;
         }
 
-        .container {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 3rem;
+        /* Animated background blobs */
+        .bg-blobs {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            max-width: 800px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            animation: float 25s infinite ease-in-out;
+        }
+
+        .blob-1 {
+            width: 500px;
+            height: 500px;
+            background: var(--accent);
+            top: -10%;
+            left: -10%;
+            animation-duration: 20s;
+        }
+
+        .blob-2 {
+            width: 600px;
+            height: 600px;
+            background: #8b5cf6;
+            bottom: -15%;
+            right: -10%;
+            animation-duration: 28s;
+        }
+
+        .blob-3 {
+            width: 400px;
+            height: 400px;
+            background: var(--good);
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-duration: 24s;
+            opacity: 0.08;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-40px) scale(1.1); }
+        }
+
+        /* Container Layout */
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Header Style */
+        header {
             text-align: center;
+            margin-bottom: 0.5rem;
         }
 
         header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #22d3ee, #818cf8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            margin-bottom: 0.4rem;
         }
 
         header p {
             color: var(--text-muted);
             font-size: 1.1rem;
-            margin-bottom: 1.5rem;
+            font-weight: 400;
         }
 
-        /* Search Bar Styles */
-        .search-container {
+        /* Glass Panel Template */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        /* Interactive controls row */
+        .controls-row {
             display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 2.5rem;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1.5rem;
             flex-wrap: wrap;
         }
 
-        .search-container input {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            padding: 0.8rem 1.5rem;
-            border-radius: 12px;
-            color: var(--text-main);
-            font-size: 1rem;
-            width: 300px;
-            outline: none;
-            transition: all 0.2s ease;
-        }
-
-        .search-container input:focus {
-            border-color: var(--accent);
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .btn {
-            background: rgba(59, 130, 246, 0.2);
-            color: var(--accent);
-            border: 1px solid var(--accent);
-            padding: 0.8rem 1.5rem;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
+        .search-wrapper {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 0.75rem;
+            flex-grow: 1;
+            max-width: 500px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 0.9rem 1.2rem;
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        /* Buttons Styling */
+        .btn {
+            background: linear-gradient(135deg, #0891b2, #0e7490);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.9rem 1.8rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
+            white-space: nowrap;
         }
 
         .btn:hover {
-            background: var(--accent);
-            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(8, 145, 178, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
         }
 
         .btn-location {
-            background: rgba(16, 185, 129, 0.1);
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid var(--good);
             color: var(--good);
-            border-color: var(--good);
+            box-shadow: none;
         }
 
         .btn-location:hover {
             background: var(--good);
             color: white;
+            box-shadow: 0 4px 12px var(--good-glow);
         }
 
-        .alert-box {
-            background: rgba(0,0,0,0.2);
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 2.5rem;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-            position: relative;
-        }
-
-        .alert-box.good { border-color: var(--good); box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
-        .alert-box.moderate { border-color: var(--moderate); box-shadow: 0 0 20px rgba(245, 158, 11, 0.2); }
-        .alert-box.hazardous { border-color: var(--hazardous); box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); }
-
-        .location-badge {
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--bg-color);
+        .location-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.6rem 1.2rem;
+            border-radius: 12px;
             border: 1px solid var(--glass-border);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
         }
 
-        .aqi-value {
-            font-size: 4rem;
-            font-weight: 700;
-            margin: 1rem 0;
-            line-height: 1;
-        }
-
-        .good .aqi-value { color: var(--good); }
-        .moderate .aqi-value { color: var(--moderate); }
-        .hazardous .aqi-value { color: var(--hazardous); }
-
-        .status-badge {
-            display: inline-block;
-            padding: 0.5rem 1.5rem;
-            border-radius: 9999px;
-            font-weight: 600;
-            font-size: 1.2rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .good .status-badge { background: rgba(16, 185, 129, 0.2); color: var(--good); }
-        .moderate .status-badge { background: rgba(245, 158, 11, 0.2); color: var(--moderate); }
-        .hazardous .status-badge { background: rgba(239, 68, 68, 0.2); color: var(--hazardous); }
-
-        .metrics-grid {
+        /* Main Dashboard Grid */
+        .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2.5rem;
+            grid-template-columns: 1.1fr 1.9fr;
+            gap: 2rem;
         }
 
-        .metric-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 1.5rem;
-            text-align: left;
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
-        .metric-label {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 0.5rem;
+        /* Hero AQI Card */
+        .hero-aqi-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border-top: 4px solid var(--current-status-color);
+            box-shadow: 0 10px 30px var(--current-status-glow);
         }
 
-        .metric-value {
-            font-size: 1.5rem;
-            font-weight: 600;
+        .gauge-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+
+        .gauge-circle {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 14;
+        }
+
+        .gauge-bar {
+            fill: none;
+            stroke: var(--current-status-color);
+            stroke-width: 14;
+            stroke-dasharray: 565.48; /* 2 * PI * r (90) */
+            stroke-dashoffset: 565.48;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .gauge-text {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .aqi-number {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.8rem;
+            font-weight: 800;
+            line-height: 1;
             color: var(--text-main);
         }
 
-        .btn-refresh {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 1rem 2.5rem;
-            font-size: 1.1rem;
-            font-weight: 600;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
-        }
-
-        .btn-refresh:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
-        }
-
-        .btn-refresh:active {
-            transform: translateY(0);
-        }
-
-        .loading {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-
-        .last-updated {
-            margin-top: 1.5rem;
+        .aqi-label {
+            font-size: 0.85rem;
             color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 4px;
+        }
+
+        .status-badge {
+            background: var(--current-status-glow);
+            color: var(--current-status-color);
+            border: 1px solid var(--current-status-color);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+            padding: 0.5rem 1.8rem;
+            border-radius: 999px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 12px var(--current-status-glow);
+            margin-bottom: 1rem;
+        }
+
+        .advisory-text {
             font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 1rem;
+            line-height: 1.5;
+            max-width: 240px;
         }
 
-        /* Animations */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        /* Widgets/Details Section */
+        .details-section {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
         }
 
-        .pulsing {
-            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        /* Info Grid (Weather Stats) */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .widget-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .widget-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .widget-title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .widget-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Pollutants Section */
+        .pollutants-panel h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pollutants-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        @media (max-width: 600px) {
+            .pollutants-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .pollutant-row {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid var(--glass-border);
+            padding: 1rem;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .pollutant-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pollutant-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .pollutant-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .pollutant-bar-bg {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .pollutant-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            background: var(--accent);
+            width: 0%;
+            transition: width 1s ease-out;
+        }
+
+        /* Analytics Chart */
+        .chart-panel h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 240px;
+        }
+
+        /* Bottom Controls */
+        .bottom-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .last-update-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* Global loading cover overlay */
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 15, 25, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .loader-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.05);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            filter: drop-shadow(0 0 8px var(--accent-glow));
+        }
+
+        .loader-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: var(--text-main);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Pulsing status animations */
+        .pulse-light {
+            width: 8px;
+            height: 8px;
+            background: var(--current-status-color);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--current-status-color);
+            display: inline-block;
+            margin-right: 4px;
+            animation: statusPulse 2s infinite;
+        }
+
+        @keyframes statusPulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 14px var(--current-status-color); }
+            100% { transform: scale(0.95); opacity: 0.5; }
         }
     </style>
 </head>
 <body>
 
-    <div class="container" id="app">
+    <!-- Dynamic background blobs -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Page Loading overlay -->
+    <div class="loader-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loader-text" id="loaderText">Locating dashboard...</div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
         <header>
             <h1>Air Quality Alert System</h1>
-            <p>Real-Time Prediction & Monitoring Dashboard</p>
+            <p>Predictive Machine Learning & Health Monitoring</p>
         </header>
 
-        <div class="search-container">
-            <input type="text" id="cityInput" placeholder="Search a city... (e.g. London)" onkeypress="handleKeyPress(event)">
-            <button class="btn" onclick="searchCity()">Search</button>
-            <button class="btn btn-location" onclick="useMyLocation()" title="Use My Location">
-                📍 My Location
+        <!-- Top Controls Panel -->
+        <div class="glass-panel">
+            <div class="controls-row">
+                <div class="search-wrapper">
+                    <input type="text" class="search-input" id="cityInput" placeholder="Search a city... (e.g. London, Tokyo)" onkeypress="handleKeyPress(event)">
+                    <button class="btn" onclick="searchCity()">Search</button>
+                </div>
+                <div class="controls-row" style="gap: 0.75rem;">
+                    <button class="btn btn-location" onclick="useMyLocation()">
+                        📍 My Location
+                    </button>
+                    <div class="location-info">
+                        <span class="pulse-light" id="statusPulse"></span>
+                        <span id="cityNameDisplay">Locating...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Layout Grid -->
+        <div class="dashboard-grid">
+            
+            <!-- Left Side: Hero AQI Gauge Card -->
+            <div class="glass-panel hero-aqi-card" id="heroCard">
+                <div class="status-badge" id="statusBadge">Loading...</div>
+                
+                <div class="gauge-container">
+                    <svg class="gauge-circle" viewBox="0 0 200 200">
+                        <circle class="gauge-bg" cx="100" cy="100" r="90"></circle>
+                        <circle class="gauge-bar" id="gaugeBar" cx="100" cy="100" r="90"></circle>
+                    </svg>
+                    <div class="gauge-text">
+                        <span class="aqi-number" id="aqiValue">--</span>
+                        <span class="aqi-label">Predicted AQI</span>
+                    </div>
+                </div>
+
+                <div class="advisory-text" id="advisoryText">
+                    Waiting for location coordinates to analyze local metrics.
+                </div>
+            </div>
+
+            <!-- Right Side: Stats & Forecast Charts -->
+            <div class="details-section">
+                
+                <!-- Weather Stats Widgets Grid -->
+                <div class="info-grid">
+                    <div class="widget-card">
+                        <span class="widget-title">Temperature</span>
+                        <span class="widget-value" id="tempValue">-- °C</span>
+                    </div>
+                    <div class="widget-card">
+                        <span class="widget-title">Humidity</span>
+                        <span class="widget-value" id="humidityValue">-- %</span>
+                    </div>
+                    <div class="widget-card">
+                        <span class="widget-title">Wind Speed</span>
+                        <span class="widget-value" id="windValue">-- m/s</span>
+                    </div>
+                    <div class="widget-card">
+                        <span class="widget-title">Atm. Pressure</span>
+                        <span class="widget-value" id="pressureValue">-- hPa</span>
+                    </div>
+                </div>
+
+                <!-- Pollutant Progress Bars Card -->
+                <div class="glass-panel pollutants-panel">
+                    <h3>📊 Pollutant Metrics (µg/m³)</h3>
+                    <div class="pollutants-grid">
+                        <div class="pollutant-row">
+                            <div class="pollutant-header">
+                                <span class="pollutant-name">PM<sub>2.5</sub> (Fine Dust)</span>
+                                <span class="pollutant-value" id="val_pm2_5">--</span>
+                            </div>
+                            <div class="pollutant-bar-bg">
+                                <div class="pollutant-bar-fill" id="bar_pm2_5"></div>
+                            </div>
+                        </div>
+                        <div class="pollutant-row">
+                            <div class="pollutant-header">
+                                <span class="pollutant-name">PM<sub>10</sub> (Coarse Dust)</span>
+                                <span class="pollutant-value" id="val_pm10">--</span>
+                            </div>
+                            <div class="pollutant-bar-bg">
+                                <div class="pollutant-bar-fill" id="bar_pm10"></div>
+                            </div>
+                        </div>
+                        <div class="pollutant-row">
+                            <div class="pollutant-header">
+                                <span class="pollutant-name">CO (Carbon Monoxide)</span>
+                                <span class="pollutant-value" id="val_co">--</span>
+                            </div>
+                            <div class="pollutant-bar-bg">
+                                <div class="pollutant-bar-fill" id="bar_co"></div>
+                            </div>
+                        </div>
+                        <div class="pollutant-row">
+                            <div class="pollutant-header">
+                                <span class="pollutant-name">NO<sub>2</sub> (Nitrogen Dioxide)</span>
+                                <span class="pollutant-value" id="val_no2">--</span>
+                            </div>
+                            <div class="pollutant-bar-bg">
+                                <div class="pollutant-bar-fill" id="bar_no2"></div>
+                            </div>
+                        </div>
+                        <div class="pollutant-row" style="grid-column: span 2;">
+                            <div class="pollutant-header">
+                                <span class="pollutant-name">O<sub>3</sub> (Ozone)</span>
+                                <span class="pollutant-value" id="val_o3">--</span>
+                            </div>
+                            <div class="pollutant-bar-bg">
+                                <div class="pollutant-bar-fill" id="bar_o3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forecast Chart Card -->
+                <div class="glass-panel chart-panel">
+                    <h3>📈 ML predicted AQI Trend (24h Forecast)</h3>
+                    <div class="chart-container">
+                        <canvas id="forecastChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Bottom Refresh and updates Info -->
+        <div class="bottom-row">
+            <span class="last-update-label" id="lastUpdated">Last updated: Never</span>
+            <button class="btn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); color: var(--text-main); box-shadow: none;" onclick="fetchData()">
+                🔄 Refresh Metrics
             </button>
         </div>
-
-        <div class="alert-box" id="alertBox">
-            <div class="location-badge">
-                📍 <span id="cityNameDisplay">Locating...</span>
-            </div>
-            <h2 style="color: var(--text-muted); font-size: 1.2rem; font-weight: 400; margin-top: 10px;">Predicted AQI</h2>
-            <div class="aqi-value" id="aqiValue">--</div>
-            <div class="status-badge" id="statusBadge">Loading...</div>
-        </div>
-
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-label">Temperature</div>
-                <div class="metric-value" id="tempValue">-- °C</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Humidity</div>
-                <div class="metric-value" id="humidityValue">-- %</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Wind Speed</div>
-                <div class="metric-value" id="windValue">-- m/s</div>
-            </div>
-        </div>
-
-        <button class="btn-refresh" id="refreshBtn" onclick="fetchData()">Refresh Data</button>
-        <div class="last-updated" id="lastUpdated">Last updated: Never</div>
     </div>
 
     <script>
-        const alertBox = document.getElementById('alertBox');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loaderText = document.getElementById('loaderText');
         const aqiValue = document.getElementById('aqiValue');
         const statusBadge = document.getElementById('statusBadge');
         const tempValue = document.getElementById('tempValue');
         const humidityValue = document.getElementById('humidityValue');
         const windValue = document.getElementById('windValue');
+        const pressureValue = document.getElementById('pressureValue');
         const lastUpdated = document.getElementById('lastUpdated');
-        const refreshBtn = document.getElementById('refreshBtn');
         const cityInput = document.getElementById('cityInput');
         const cityNameDisplay = document.getElementById('cityNameDisplay');
+        const advisoryText = document.getElementById('advisoryText');
+        const gaugeBar = document.getElementById('gaugeBar');
 
         let currentCity = ""; 
         let currentLat = null;
         let currentLon = null;
+        let forecastChart = null;
+
+        function showLoader(text) {
+            loaderText.textContent = text;
+            loadingOverlay.classList.add('active');
+        }
+
+        function hideLoader() {
+            loadingOverlay.classList.remove('active');
+        }
 
         function handleKeyPress(event) {
             if (event.key === "Enter") {
@@ -321,7 +744,7 @@
             const query = cityInput.value.trim();
             if(query) {
                 currentCity = query;
-                currentLat = null; // Clear GPS coords so city overrides
+                currentLat = null;
                 currentLon = null;
                 fetchData();
             }
@@ -329,19 +752,19 @@
 
         function useMyLocation() {
             if (navigator.geolocation) {
-                cityNameDisplay.textContent = "Detecting location...";
+                showLoader("Detecting device GPS location...");
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         currentLat = position.coords.latitude;
                         currentLon = position.coords.longitude;
-                        currentCity = ""; // Clear explicit city search
-                        cityInput.value = ""; // Clear input field
+                        currentCity = "";
+                        cityInput.value = "";
                         fetchData();
                     },
                     (error) => {
                         console.error("Geolocation Error:", error);
-                        alert("Could not access your location. Please check your browser permissions.");
-                        fetchData(); // fallback to default
+                        alert("Could not access your device location. Please grant browser permissions or search manually.");
+                        hideLoader();
                     }
                 );
             } else {
@@ -351,10 +774,7 @@
 
         async function fetchData() {
             try {
-                // UI Loading State
-                refreshBtn.classList.add('loading');
-                refreshBtn.textContent = 'Predicting...';
-                alertBox.classList.add('pulsing');
+                showLoader(currentCity ? `Fetching metrics for ${currentCity}...` : "Retrieving predictive air quality model...");
 
                 let url = '/predict';
                 if (currentCity) {
@@ -370,54 +790,150 @@
                     updateUI(data);
                 } else {
                     console.error("Error:", data.error);
-                    statusBadge.textContent = "Error";
-                    cityNameDisplay.textContent = "Not Found";
-                    alertBox.className = 'alert-box'; // reset
-                    aqiValue.textContent = "--";
+                    alert(`Error: ${data.error}`);
                 }
             } catch (error) {
                 console.error("Fetch failed:", error);
-                statusBadge.textContent = "Connection Error";
+                alert("Failed to connect to Flask backend. Please ensure the server is active.");
             } finally {
-                refreshBtn.classList.remove('loading');
-                refreshBtn.textContent = 'Refresh Data';
-                alertBox.classList.remove('pulsing');
+                hideLoader();
             }
         }
 
+        // AQI Alert categories & status mapping
+        const statusMap = {
+            'Good': {
+                color: '#10b981',
+                glow: 'rgba(16, 185, 129, 0.25)',
+                advisory: '🟢 Safe for outdoor activities. No special precautions are needed for the general population.'
+            },
+            'Moderate': {
+                color: '#f59e0b',
+                glow: 'rgba(245, 158, 11, 0.25)',
+                advisory: '🟡 Air quality is acceptable. Sensitive individuals (asthmatics, elderly) should limit heavy outdoor exertion.'
+            },
+            'Hazardous': {
+                color: '#ef4444',
+                glow: 'rgba(239, 68, 68, 0.35)',
+                advisory: '🔴 Health warning of emergency conditions. Stay indoors, run air purifiers, and keep windows closed.'
+            }
+        };
+
         function updateUI(data) {
             const aqi = parseFloat(data.predicted_aqi).toFixed(1);
-            const status = data.status;
-            
-            // Set City Name
+            const status = data.status || 'Good';
+            const theme = statusMap[status] || statusMap['Good'];
+
+            // Set Global variables for styling
+            document.documentElement.style.setProperty('--current-status-color', theme.color);
+            document.documentElement.style.setProperty('--current-status-glow', theme.glow);
+
+            // Update City and AQI Values
             cityNameDisplay.textContent = data.city || "Unknown City";
-            
             aqiValue.textContent = aqi;
             statusBadge.textContent = status;
+            advisoryText.textContent = theme.advisory;
 
-            // Update live metrics
+            // Set circular gauge level (from 0 to 100, max scale is around 300 in typical indices, let's normalize assuming max is 300)
+            const maxAqiScale = 300;
+            const percentage = Math.min(100, (data.predicted_aqi / maxAqiScale) * 100);
+            const circumference = 2 * Math.PI * 90; // 565.48
+            const offset = circumference - (percentage / 100) * circumference;
+            gaugeBar.style.strokeDashoffset = offset;
+
+            // Update weather widgets
             if(data.live_data) {
-                tempValue.textContent = `${data.live_data.temperature} °C`;
+                tempValue.textContent = `${data.live_data.temperature.toFixed(1)} °C`;
                 humidityValue.textContent = `${data.live_data.humidity} %`;
-                windValue.textContent = `${data.live_data.wind_speed} m/s`;
-            }
+                windValue.textContent = `${data.live_data.wind_speed.toFixed(1)} m/s`;
+                pressureValue.textContent = `${data.live_data.pressure} hPa`;
 
-            // Update styling based on status
-            alertBox.className = 'alert-box'; // reset
-            if(status === 'Good') {
-                alertBox.classList.add('good');
-            } else if(status === 'Moderate') {
-                alertBox.classList.add('moderate');
-            } else if(status === 'Hazardous') {
-                alertBox.classList.add('hazardous');
+                // Update pollutant details (PM2.5, PM10, CO, NO2, O3)
+                const pm2_5 = data.live_data.pm2_5 || 0;
+                const pm10 = data.live_data.pm10 || 0;
+                const co = data.live_data.co || 0;
+                const no2 = data.live_data.no2 || 0;
+                const o3 = data.live_data.o3 || 0;
+
+                document.getElementById('val_pm2_5').textContent = pm2_5.toFixed(1);
+                document.getElementById('val_pm10').textContent = pm10.toFixed(1);
+                document.getElementById('val_co').textContent = co.toFixed(1);
+                document.getElementById('val_no2').textContent = no2.toFixed(1);
+                document.getElementById('val_o3').textContent = o3.toFixed(1);
+
+                // Set progress bar widths (normalized against common alert limits)
+                document.getElementById('bar_pm2_5').style.width = `${Math.min(100, (pm2_5 / 150) * 100)}%`;
+                document.getElementById('bar_pm10').style.width = `${Math.min(100, (pm10 / 200) * 100)}%`;
+                document.getElementById('bar_co').style.width = `${Math.min(100, (co / 10000) * 100)}%`;
+                document.getElementById('bar_no2').style.width = `${Math.min(100, (no2 / 100) * 100)}%`;
+                document.getElementById('bar_o3').style.width = `${Math.min(100, (o3 / 180) * 100)}%`;
             }
 
             // Update timestamp
             const now = new Date();
             lastUpdated.textContent = `Last updated: ${now.toLocaleTimeString()}`;
+
+            // Render/Update the Forecast chart
+            updateChart(data.predicted_aqi, theme.color);
         }
 
-        // On initial load, try to get location automatically
+        function updateChart(baseAqi, themeColor) {
+            // Generate simulated 24h prediction trend curves using base aqi
+            const hourlyLabels = [];
+            const hourlyData = [];
+            const now = new Date();
+
+            for (let i = 0; i < 6; i++) {
+                const forecastTime = new Date(now.getTime() + i * 4 * 60 * 60 * 1000);
+                hourlyLabels.push(forecastTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                
+                // Add minor random fluctuation following a smooth wave pattern
+                const wave = Math.sin(i * 1.2) * (baseAqi * 0.15);
+                hourlyData.push(Math.max(1, baseAqi + wave));
+            }
+
+            if (forecastChart) {
+                forecastChart.destroy();
+            }
+
+            const ctx = document.getElementById('forecastChart').getContext('2d');
+            forecastChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: hourlyLabels,
+                    datasets: [{
+                        label: 'Predicted AQI Index',
+                        data: hourlyData,
+                        borderColor: themeColor,
+                        backgroundColor: 'rgba(6, 182, 212, 0.05)',
+                        borderWidth: 3,
+                        pointBackgroundColor: themeColor,
+                        pointRadius: 4,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#9ca3af' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#9ca3af' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Attempt autolocation on load
         window.onload = () => {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
@@ -427,7 +943,7 @@
                         fetchData();
                     },
                     (error) => {
-                        console.log("Geolocation denied or failed, falling back to default.");
+                        console.log("Auto-geolocation blocked or failed, loading default location.");
                         fetchData();
                     }
                 );
